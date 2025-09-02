@@ -1,21 +1,21 @@
-
 const express = require("express");
+const path = require("path");
 const app = express();
 const Stripe = require("stripe");
 
-const path = require("path");
+// Use the Stripe secret key from env
+const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
-// Serve index.html on root URL
+// Serve static files like index.html, JS, CSS
+app.use(express.static(path.join(__dirname))); // ✅ static assets
+app.use(express.json()); // ✅ parse JSON
+
+// Serve index.html from root
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
-// Use the Stripe secret key set as environment variable
-const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
-
-app.use(express.static("."));
-app.use(express.json());
-
+// Handle PaymentIntent creation
 app.post("/create-intent", async (req, res) => {
   try {
     const paymentIntent = await stripe.paymentIntents.create({
@@ -32,5 +32,6 @@ app.post("/create-intent", async (req, res) => {
   }
 });
 
+// Listen on Render's provided port
 const PORT = process.env.PORT || 4242;
 app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
