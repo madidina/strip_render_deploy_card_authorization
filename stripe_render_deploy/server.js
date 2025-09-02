@@ -3,6 +3,13 @@ const express = require("express");
 const app = express();
 const Stripe = require("stripe");
 
+const path = require("path");
+
+// Serve index.html on root URL
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "index.html"));
+});
+
 // Use the Stripe secret key set as environment variable
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
