@@ -1,0 +1,68 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Card Authorization</title>
+  <script src="https://js.stripe.com/v3/"></script>
+  <style>
+    body { font-family: Arial; margin: 2em; }
+    #card-element { margin: 1em 0; }
+    input, select, button { margin-top: 10px; display: block; }
+  </style>
+</head>
+<body>
+  <h2>Card Authorization</h2>
+  <form id="payment-form">
+    <label for="name">Customer Name</label>
+    <input type="text" id="name" required />
+
+    <label for="amount">Enter Amount (in USD)</label>
+    <input type="number" id="amount" required min="1" step="1" value="500" />
+
+    <div id="card-element"></div>
+    <button type="submit">Authorize</button>
+    <p id="message"></p>
+  </form>
+
+  <script>
+    const stripe = Stripe("pk_live_YOUR_PUBLISHABLE_KEY_HERE");
+    const elements = stripe.elements();
+    const card = elements.create("card");
+    card.mount("#card-element");
+
+    const form = document.getElementById("payment-form");
+    const message = document.getElementById("message");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      message.textContent = "Processing...";
+
+      const amountInDollars = parseFloat(document.getElementById("amount").value);
+      const amount = Math.round(amountInDollars * 100); // convert to cents
+
+      const response = await fetch("/create-intent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount }),
+      });
+
+      const { client_secret } = await response.json();
+
+      const result = await stripe.confirmCardPayment(client_secret, {
+        payment_method: {
+          card: card,
+          billing_details: {
+            name: document.getElementById("name").value,
+          },
+        },
+      });
+
+      if (result.error) {
+        message.textContent = result.error.message;
+      } else if (result.paymentIntent.status === "requires_capture") {
+        message.textContent = "Card authorized! Funds held but not charged.";
+      }
+    });
+  </script>
+</body>
+</html>
